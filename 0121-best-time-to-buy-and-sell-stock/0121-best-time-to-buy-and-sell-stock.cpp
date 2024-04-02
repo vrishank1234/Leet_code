@@ -8,8 +8,11 @@ public:
         int maxProfit = 0;
         
         for (int i = 1; i < prices.size(); ++i) {
-            minPrice = std::min(minPrice, prices[i]);
-            maxProfit = std::max(maxProfit, prices[i] - minPrice);
+            if (prices[i] < minPrice) {
+                minPrice = prices[i];
+            } else if (prices[i] - minPrice > maxProfit) {
+                maxProfit = prices[i] - minPrice;
+            }
         }
         
         return maxProfit;
