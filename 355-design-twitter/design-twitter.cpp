@@ -1,45 +1,38 @@
 class Twitter {
 private:
-    struct Tweet {
-        int id;
-        int timestamp;
-        Tweet* next;
-
-        Tweet(int tweetId, int time) : id(tweetId), timestamp(time), next(nullptr) {}
-    };
-
-    unordered_map<int, Tweet*> userTweets;        // User -> Head of their tweets
-    unordered_map<int, unordered_set<int>> followers; // User -> Set of followees
-    int timestamp;                                // Global timestamp
+    unordered_map<int, vector<pair<int, int>>> userTweets; // User -> [(timestamp, tweetId)]
+    unordered_map<int, unordered_set<int>> followers;     // User -> Set of followees
+    int timestamp;                                        // Global timestamp
 
 public:
+    /** Initialize your Twitter object. */
     Twitter() : timestamp(0) {}
 
     /** Compose a new tweet. */
     void postTweet(int userId, int tweetId) {
-        Tweet* newTweet = new Tweet(tweetId, timestamp++);
-        if (userTweets[userId] != nullptr) {
-            newTweet->next = userTweets[userId];
-        }
-        userTweets[userId] = newTweet;
+        userTweets[userId].emplace_back(timestamp++, tweetId);
     }
 
     /** Retrieve the 10 most recent tweet IDs in the user's news feed. */
     vector<int> getNewsFeed(int userId) {
-        // Priority queue to store the 10 most recent tweets
-        auto comp = [](Tweet* a, Tweet* b) { return a->timestamp < b->timestamp; };
-        priority_queue<Tweet*, vector<Tweet*>, decltype(comp)> pq(comp);
+        // Min-heap to store the 10 most recent tweets
+        auto comp = [](pair<int, int>& a, pair<int, int>& b) { return a.first < b.first; };
+        priority_queue<pair<int, int>, vector<pair<int, int>>, decltype(comp)> pq(comp);
 
-        // Add the user's tweets
-        if (userTweets[userId] != nullptr) {
-            pq.push(userTweets[userId]);
+        // Add the user's own tweets
+        if (userTweets.count(userId)) {
+            for (auto& tweet : userTweets[userId]) {
+                pq.push(tweet);
+            }
         }
 
         // Add tweets from followees
         if (followers.count(userId)) {
             for (int followeeId : followers[userId]) {
-                if (userTweets[followeeId] != nullptr) {
-                    pq.push(userTweets[followeeId]);
+                if (userTweets.count(followeeId)) {
+                    for (auto& tweet : userTweets[followeeId]) {
+                        pq.push(tweet);
+                    }
                 }
             }
         }
@@ -47,12 +40,8 @@ public:
         // Retrieve the 10 most recent tweets
         vector<int> result;
         while (!pq.empty() && result.size() < 10) {
-            Tweet* topTweet = pq.top();
+            result.push_back(pq.top().second); // Get tweetId
             pq.pop();
-            result.push_back(topTweet->id);
-            if (topTweet->next != nullptr) {
-                pq.push(topTweet->next);
-            }
         }
 
         return result;
